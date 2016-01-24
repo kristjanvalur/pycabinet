@@ -245,7 +245,10 @@ PFNFDINOTIFY = CFUNCTYPE(c_int, FDINOTIFICATIONTYPE, POINTER(FDINOTIFICATION))
 #finally, the FDI api functions, from the CABINET.DLL file:
 
 #FDICreate
-FDICreate = cdll.cabinet.FDICreate
+try:
+    FDICreate = cdll.cabinet.FDICreate
+except Exception:
+    raise ImportError("cabinet only works on windows")
 FDICreate.restype = HFDI
 FDICreate.argtypes = [PFNALLOC, PFNFREE, PFNOPEN, PFNREAD, PFNWRITE, PFNCLOSE, PFNSEEK,
                       c_int, POINTER(ERF)]
@@ -642,11 +645,11 @@ def main(args = None):
     import textwrap
     USAGE=textwrap.dedent("""\
         Usage:
-            cabinet.py -l cabinet.cab        # Show listing of a zipfile
-            cabinet.py -t cabinet.cab        # Test if a zipfile is valid
-            cabinet.py -e cabinet.cab target # Extract zipfile into target dir
+            cabinet.py -l cabinet.cab        # Show listing of a cab file
+            cabinet.py -t cabinet.cab        # Test if a cab file is valid
+            cabinet.py -e cabinet.cab target # Extract cab file into target dir
         """)
-        #    cabinet.py -c cabinet.cab src ... # Create zipfile from sources
+        #    cabinet.py -c cabinet.cab src ... # Create cab file from sources
         #""")
     if args is None:
         args = sys.argv[1:]
@@ -681,7 +684,8 @@ def main(args = None):
         zf.extract(out)
         zf.close()
 
-    elif args[0] == '-c':
+    elif False and args[0] == '-c':
+        # not supported
         if len(args) < 3:
             print USAGE
             sys.exit(1)
