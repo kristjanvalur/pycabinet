@@ -34,12 +34,19 @@
 Utility module to read windows cabinet files.
 """
 
+from __future__ import print_function
 import sys
 import os.path
-import cStringIO
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from io import StringIO
 from ctypes import *
 from ctypes.wintypes import BOOL
 from functools import wraps
+
+import sys
+PY2 = sys.version_info[0] == 2
 
 
 ##################################
@@ -306,7 +313,7 @@ def FileErrwrap(f):
     def helper(self, *args):
         try:
             return f(self, *args)
-        except BaseException, e:
+        except BaseException as e:
             self._excinfo[:] = sys.exc_info()
             return -1
 
@@ -465,6 +472,9 @@ class CabinetFile(object):
         self.head, self.tail = os.path.split(os.path.normpath(self.filename))
         if self.head:
             self.head += "\\"
+        if not PY2:
+            self.head = self.head.encode(sys.getfilesystemencoding())
+            self.tail = self.tail.encode(sys.getfilesystemencoding())
             
         self.hfdi = FDICreate(self.a.malloc, self.a.free,
                               self.f.open, self.f.read, self.f.write, self.f.close, self.f.seek,
@@ -487,7 +497,7 @@ class CabinetFile(object):
         def wrap(fdint, pnotify):
             try:
                 return callback(fdint, pnotify)
-            except:
+            except Exception:
                 excinfo[:] = sys.exc_info()
                 return -1
 
@@ -537,10 +547,10 @@ class CabinetFile(object):
         
     def printdir(self):
         """Print a table of contents for the archive."""
-        print "%-46s %19s %12s" % ("File Name", "Modified    ", "Size")
+        print("%-46s %19s %12s" % ("File Name", "Modified    ", "Size"))
         for cinfo in self.infolist():
             date = "%d-%02d-%02d %02d:%02d:%02d" % cinfo.date_time
-            print "%-46s %s %12d" % (cinfo.filename, date, cinfo.file_size)
+            print("%-46s %s %12d" % (cinfo.filename, date, cinfo.file_size))
 
     def getinfo(self, name):
         """Return the instance of CabinetInfo given 'name'."""
@@ -560,7 +570,7 @@ class CabinetFile(object):
                 return 0
             if fdint == fdintCOPY_FILE:
                 if notify.psz1 in names:
-                    sio = cStringIO.StringIO()
+                    sio = StringIO()
                     fd = self.f.map(sio)
                     return fd #signals that we want to copy!
                 return 0 #don't copy
@@ -606,7 +616,7 @@ class CabinetFile(object):
             if fdint in [fdintCABINET_INFO, fdintENUMERATE]:
                 return 0
             if fdint == fdintCOPY_FILE:
-                sio = cStringIO.StringIO()
+                sio = StringIO()
                 fd = self.f.map(sio)
                 return fd #signals that we want to copy!
             if fdint == fdintCLOSE_FILE_INFO:
@@ -617,7 +627,7 @@ class CabinetFile(object):
 
         try:
             return self.__FDICopy(callback) != 0
-        except CabinetError, IOError:
+        except (CabinetError, IOError):
             return False
             
 class CabinetInfo(object):
@@ -655,12 +665,12 @@ def main(args = None):
         args = sys.argv[1:]
 
     if not args or args[0] not in ('-l', '-e', '-t'):
-        print USAGE
+        print(USAGE)
         sys.exit(1)
 
     if args[0] == '-l':
         if len(args) != 2:
-            print USAGE
+            print(USAGE)
             sys.exit(1)
         zf = CabinetFile(args[1])
         zf.printdir()
@@ -668,15 +678,15 @@ def main(args = None):
 
     elif args[0] == '-t':
         if len(args) != 2:
-            print USAGE
+            print(USAGE)
             sys.exit(1)
         zf = CabinetFile(args[1])
-        print zf.testcabinet()
-        print "Done testing"
+        print(zf.testcabinet())
+        print("Done testing")
 
     elif args[0] == '-e':
         if len(args) != 3:
-            print USAGE
+            print(USAGE)
             sys.exit(1)
 
         zf = CabinetFile(args[1])
@@ -687,7 +697,7 @@ def main(args = None):
     elif False and args[0] == '-c':
         # not supported
         if len(args) < 3:
-            print USAGE
+            print(USAGE)
             sys.exit(1)
 
         def addToZip(zf, path, zippath):
